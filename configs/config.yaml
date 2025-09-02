@@ -1,0 +1,196 @@
+# CriOS Discovery Engine Configuration
+# Production-grade configuration for universal compound discovery
+
+# System Configuration
+system:
+  name: "CriOS Discovery Engine"
+  version: "1.0.0"
+  environment: "production"
+  seed: 42
+  debug: false
+  log_level: "INFO"
+  log_json: false
+
+# Performance Settings
+performance:
+  num_workers: 4
+  batch_size: 1000
+  max_memory_gb: 8
+  enable_ray: false
+  cache_size_mb: 512
+  vectorize_ops: true
+
+# Chemical Processing
+chemistry:
+  # Standardization
+  standardization:
+    neutralize: true
+    sanitize: true
+    canonical_tautomer: true
+    strip_salts: true
+    remove_stereo: false
+    
+  # Fingerprints
+  fingerprints:
+    morgan:
+      radius: 2
+      n_bits: 2048
+      use_features: false
+    maccs:
+      n_bits: 166
+      
+  # Descriptors
+  descriptors:
+    include_3d: false
+    timeout_seconds: 5
+    error_handling: "skip"
+
+# Drug-like Filters (Lipinski + Extended)
+drug_like_filters:
+  molecular_weight:
+    min: 150.0
+    max: 500.0
+  logp:
+    min: -2.0
+    max: 5.0
+  hbd:  # Hydrogen bond donors
+    max: 5
+  hba:  # Hydrogen bond acceptors
+    max: 10
+  tpsa:  # Topological polar surface area
+    min: 20.0
+    max: 140.0
+  rotatable_bonds:
+    max: 10
+  aromatic_rings:
+    max: 4
+  aliphatic_rings:
+    max: 4
+  heavy_atoms:
+    min: 10
+    max: 70
+
+# Crowe Scoring Weights
+crowe_weights:
+  potency: 0.25
+  selectivity: 0.20
+  admet: 0.25
+  synthesis: 0.20
+  novelty: 0.10
+
+# Target Class Configurations
+target_classes:
+  GPCR:
+    mw_preference: [300, 450]
+    logp_preference: [2.0, 4.0]
+    tpsa_preference: [40, 90]
+    hbd_preference: [0, 3]
+    specific_features:
+      - "aromatic_nitrogen"
+      - "basic_nitrogen"
+  
+  kinase:
+    mw_preference: [250, 400]
+    logp_preference: [1.5, 3.5]
+    tpsa_preference: [60, 120]
+    hba_preference: [4, 8]
+    specific_features:
+      - "hydrogen_bond_donor"
+      - "planar_rings"
+  
+  protease:
+    mw_preference: [400, 600]
+    logp_preference: [0.5, 3.0]
+    tpsa_preference: [80, 140]
+    rotatable_bonds_preference: [5, 12]
+    specific_features:
+      - "peptide_like"
+      - "hydroxyl_groups"
+
+# Engine-Specific Settings
+engines:
+  synthetic:
+    max_iterations: 1000
+    convergence_threshold: 0.01
+    beam_width: 10
+    mutation_rate: 0.1
+    crossover_rate: 0.7
+    
+  neuro:
+    bbb_tpsa_max: 90.0
+    bbb_mw_max: 450.0
+    bbb_hbd_max: 3
+    cns_safety_threshold: 0.8
+    
+  natural:
+    scaffold_similarity_threshold: 0.7
+    max_modifications_per_scaffold: 5
+    preserve_core_scaffold: true
+    modification_types:
+      - "hydroxylation"
+      - "methylation"
+      - "demethylation"
+      - "acetylation"
+
+# ADMET Prediction Thresholds
+admet:
+  oral_absorption:
+    good_threshold: 0.7
+    features: ["mw", "logp", "tpsa", "hbd"]
+  
+  bbb_permeation:
+    good_threshold: 0.5
+    features: ["mw", "logp", "tpsa", "polar_atoms"]
+  
+  metabolic_stability:
+    good_threshold: 0.6
+    features: ["cyp_sites", "reactive_groups"]
+  
+  clearance:
+    low_threshold: 20.0  # mL/min/kg
+    features: ["mw", "logp", "flexibility"]
+  
+  safety:
+    herg_threshold: 0.5
+    hepatotoxicity_threshold: 0.3
+    skin_sensitization_threshold: 0.4
+
+# Novelty Assessment
+novelty:
+  fingerprint_type: "morgan"
+  similarity_threshold: 0.85
+  database_size_limit: 100000
+  include_patents: true
+  include_literature: true
+  temporal_weighting: true
+
+# Synthetic Accessibility
+synthesis:
+  sa_score_max: 6.0  # 1-10 scale, lower is more accessible
+  complexity_penalty: 0.1
+  stereocenter_penalty: 0.05
+  ring_strain_penalty: 0.2
+  reactive_group_bonus: 0.05
+
+# Output Configuration
+output:
+  formats: ["csv", "sdf", "json", "parquet"]
+  default_format: "csv"
+  include_metadata: true
+  include_provenance: true
+  precision: 4
+  
+# Parallel Processing
+parallel:
+  backend: "joblib"  # joblib, ray, dask
+  prefer_threads: false
+  chunk_size_auto: true
+  progress_bars: true
+
+# Caching
+cache:
+  enabled: true
+  directory: ".crios_cache"
+  max_size_gb: 2.0
+  ttl_hours: 24
+  persist_across_runs: true

@@ -1,0 +1,246 @@
+# CriOS Ethics & Safety Policy Configuration
+# Comprehensive safety framework for responsible compound discovery
+
+# Policy Metadata
+metadata:
+  version: "1.0.0"
+  last_updated: "2025-01-01"
+  policy_name: "CriOS Research Safety Framework"
+  description: "Ethics and safety constraints for compound discovery"
+  maintainer: "Dr. Michael Crowe <michael@crowelogic.com>"
+
+# Core Principles
+principles:
+  - "Science before status"
+  - "Discovery before profit"
+  - "Earth and people above extraction"
+  - "Research only - no medical advice"
+  - "Transparent and explainable AI"
+  - "Harm reduction and safety first"
+
+# Enforcement Levels
+enforcement:
+  mode: "strict"  # strict, warning, permissive
+  log_all_checks: true
+  require_explanations: true
+  auto_reject_violations: true
+
+# Structural Alerts (SMARTS patterns for toxicophores)
+# Note: These are example patterns for demonstration
+# Users should populate with appropriate toxicophore libraries
+structural_alerts:
+  # Example patterns - NOT a comprehensive toxicophore library
+  examples:
+    - name: "nitro_aromatic"
+      smarts: "[$(c1ccccc1)][N+](=O)[O-]"
+      severity: "medium"
+      description: "Aromatic nitro groups - potential mutagenicity concern"
+      
+    - name: "aromatic_amine"
+      smarts: "c-[NH2]"
+      severity: "low"
+      description: "Aromatic amine - monitor for potential carcinogenicity"
+      
+    - name: "epoxide"
+      smarts: "C1OC1"
+      severity: "high"
+      description: "Epoxide group - potential DNA reactivity"
+      
+    - name: "aldehyde"
+      smarts: "[CH](=O)"
+      severity: "low"
+      description: "Aldehyde group - potential protein reactivity"
+
+  # Custom alert categories
+  categories:
+    genotoxic: ["epoxide", "nitro_aromatic"]
+    hepatotoxic: []
+    cardiotoxic: []
+    nephrotoxic: []
+
+# Controlled Substance Filters
+# WARNING: Lists are intentionally EMPTY by default
+# Users must populate these based on their jurisdiction and research context
+controlled_substances:
+  # Hash-based blocklist (SHA256 of canonical SMILES)
+  blocked_hashes: []
+  
+  # SMARTS pattern blocklist
+  blocked_patterns: []
+  
+  # Substructure similarity blocklist (Tanimoto threshold)
+  similarity_blocklist:
+    threshold: 0.95
+    reference_structures: []
+
+# Contextual Guardrails
+guardrails:
+  # Block workflows suggesting harmful intent
+  blocked_keywords:
+    - "synthesis of controlled substances"
+    - "drug manufacturing"
+    - "illegal drug production"
+    - "weapon development"
+    - "bioweapon"
+    - "chemical weapon"
+  
+  # Require safety disclaimers for certain categories
+  require_disclaimers:
+    - "experimental compounds"
+    - "novel structures"
+    - "bioactive molecules"
+  
+  # Auto-reject compound classes
+  forbidden_classes:
+    - "explosive precursors"
+    - "nerve agents"
+    - "biological toxins"
+
+# Research Ethics Guidelines
+research_ethics:
+  # Compound origin requirements
+  require_source_attribution: true
+  respect_traditional_knowledge: true
+  avoid_biopiracy: true
+  
+  # Publication and sharing
+  encourage_open_science: true
+  require_negative_results: false
+  preprint_friendly: true
+  
+  # Safety reporting
+  report_safety_concerns: true
+  incident_reporting_required: true
+  adverse_event_tracking: true
+
+# Approval Workflows
+approval:
+  # Require manual review for high-risk compounds
+  manual_review_triggers:
+    - structural_alert_severity: "high"
+    - novelty_score: 0.95
+    - unknown_target_class: true
+    - off_label_usage: true
+  
+  # Review committee configuration
+  review_committee:
+    required_roles: ["chemist", "toxicologist", "ethicist"]
+    quorum_size: 2
+    decision_threshold: 0.75
+    appeal_process: true
+
+# Audit and Compliance
+audit:
+  # Logging requirements
+  log_level: "INFO"
+  retain_logs_days: 365
+  encrypt_sensitive_data: true
+  
+  # Compliance frameworks
+  frameworks:
+    - "Good Research Practice (GRP)"
+    - "OECD Guidelines for Testing of Chemicals"
+    - "ICH Guidelines (where applicable)"
+  
+  # Regular review requirements
+  policy_review_frequency: "quarterly"
+  alert_list_updates: "monthly"
+  training_requirements: "annual"
+
+# Geographic and Legal Considerations
+legal:
+  # Jurisdiction-specific rules
+  default_jurisdiction: "research_context"
+  respect_local_laws: true
+  
+  # Export control compliance
+  export_control_screening: false
+  dual_use_technology_review: true
+  
+  # Data protection
+  privacy_protection: true
+  data_anonymization: true
+  gdpr_compliance: true
+
+# Exception Handling
+exceptions:
+  # Compounds that bypass normal filters (with justification)
+  approved_exceptions: []
+  
+  # Emergency override procedures
+  emergency_override:
+    enabled: false
+    requires_justification: true
+    approval_required: true
+    audit_trail_mandatory: true
+  
+  # Grace period for legacy compounds
+  legacy_grace_period_days: 30
+
+# Integration Settings
+integration:
+  # External database checks
+  external_databases:
+    pubchem_check: true
+    chembl_check: true
+    toxcast_check: false
+  
+  # Third-party safety services
+  safety_services:
+    derek_nexus: false
+    sarah_nexus: false
+    leadscope: false
+  
+  # Machine learning model integration
+  ml_models:
+    toxicity_prediction: true
+    drug_interaction_check: false
+    genotoxicity_qsar: false
+
+# Reporting and Transparency
+reporting:
+  # Safety reporting requirements
+  generate_safety_reports: true
+  include_uncertainty_estimates: true
+  report_model_limitations: true
+  
+  # Public transparency
+  publish_safety_summaries: false
+  contribute_to_safety_databases: true
+  share_negative_results: true
+  
+  # Stakeholder communication
+  notify_relevant_authorities: false
+  inform_research_community: true
+  engage_with_ethicists: true
+
+# Default Actions
+defaults:
+  # What to do when safety checks fail
+  on_structural_alert: "reject"  # reject, warn, flag
+  on_controlled_substance: "reject"
+  on_novel_chemistry: "warn"
+  on_unknown_toxicity: "flag"
+  
+  # Confidence thresholds
+  minimum_safety_confidence: 0.7
+  minimum_prediction_confidence: 0.6
+  
+  # Documentation requirements
+  require_safety_documentation: true
+  require_literature_review: false
+  require_expert_review: false
+
+# Customization Hooks
+customization:
+  # Plugin system for custom filters
+  custom_filter_modules: []
+  
+  # User-defined safety metrics
+  custom_safety_metrics: []
+  
+  # Organization-specific policies
+  organization_policies: []
+  
+  # Research area specific rules
+  research_area_rules: []

@@ -1,0 +1,228 @@
+# Production Deployment Configuration for CriOS Dr. Crowe Coder
+# Deploy to AWS ECS, Google Cloud Run, or Azure Container Instances
+
+version: '3.9'
+
+services:
+  # Production Database (AWS RDS / Google Cloud SQL / Azure Database)
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: crios_production
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+    networks:
+      - crios-prod-network
+
+  # Redis Cluster for Caching
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_prod_data:/data
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    networks:
+      - crios-prod-network
+
+  # Backend API (Multiple Instances)
+  backend:
+    image: ghcr.io/michaelcrowe11/crios-backend:latest
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/crios_production
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      JWT_SECRET: ${JWT_SECRET}
+      ENVIRONMENT: production
+      CORS_ORIGINS: "https://crios.ai,https://www.crios.ai,https://app.crios.ai"
+      SENTRY_DSN: ${SENTRY_DSN}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_BUCKET: crios-production
+    deploy:
+      replicas: 4
+      update_config:
+        parallelism: 2
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - crios-prod-network
+
+  # Frontend (CDN + Static Hosting)
+  frontend:
+    image: ghcr.io/michaelcrowe11/crios-frontend:latest
+    environment:
+      NEXT_PUBLIC_API_URL: https://api.crios.ai
+      NEXT_PUBLIC_WS_URL: wss://api.crios.ai
+      NEXT_PUBLIC_STRIPE_PUBLIC_KEY: ${STRIPE_PUBLIC_KEY}
+      NEXT_PUBLIC_GOOGLE_ANALYTICS: ${GA_TRACKING_ID}
+      NEXT_PUBLIC_SENTRY_DSN: ${SENTRY_DSN_FRONTEND}
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    networks:
+      - crios-prod-network
+
+  # Celery Workers (Auto-scaling)
+  celery-worker:
+    image: ghcr.io/michaelcrowe11/crios-backend:latest
+    command: celery -A app.celery worker --loglevel=info --concurrency=4
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/crios_production
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: '4'
+          memory: 4G
+        reservations:
+          cpus: '2'
+          memory: 2G
+    networks:
+      - crios-prod-network
+
+  # Nginx Load Balancer with SSL
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./nginx/production.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - nginx_cache:/var/cache/nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+    networks:
+      - crios-prod-network
+
+  # Monitoring - Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+    networks:
+      - crios-prod-network
+
+  # Monitoring - Grafana
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_INSTALL_PLUGINS: redis-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana:/etc/grafana/provisioning
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+    networks:
+      - crios-prod-network
+
+networks:
+  crios-prod-network:
+    driver: overlay
+    attachable: true
+    driver_opts:
+      encrypted: "true"
+
+volumes:
+  postgres_prod_data:
+    driver: local
+  redis_prod_data:
+    driver: local
+  nginx_cache:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+# Deployment Commands:
+# 
+# 1. Build and push images:
+#    docker build -t ghcr.io/michaelcrowe11/crios-backend:latest ./platform/backend
+#    docker build -t ghcr.io/michaelcrowe11/crios-frontend:latest ./platform/frontend
+#    docker push ghcr.io/michaelcrowe11/crios-backend:latest
+#    docker push ghcr.io/michaelcrowe11/crios-frontend:latest
+#
+# 2. Deploy stack:
+#    docker stack deploy -c deploy/production.yml crios
+#
+# 3. Scale services:
+#    docker service scale crios_backend=10
+#    docker service scale crios_celery-worker=5

@@ -1,0 +1,123 @@
+# CriOS Discovery Engine - Optimized Requirements
+# High-performance dependencies for production deployment
+
+# Core cheminformatics
+rdkit>=2023.9.1
+
+# High-performance async
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+gunicorn>=21.2.0
+uvloop>=0.19.0  # Faster event loop
+httptools>=0.6.0  # Faster HTTP parsing
+
+# Optimized JSON handling
+orjson>=3.9.10  # Fastest JSON serialization
+ujson>=5.8.0  # Alternative fast JSON
+
+# Caching and data stores
+redis[hiredis]>=5.0.0  # Redis with C parser
+aiocache>=0.12.0  # Async caching
+diskcache>=5.6.0  # Persistent disk cache
+
+# Database (async)
+asyncpg>=0.29.0  # PostgreSQL async driver
+sqlalchemy[asyncio]>=2.0.0
+alembic>=1.13.0  # Database migrations
+
+# High-performance data processing
+numpy>=1.24.0
+pandas>=2.0.0
+polars>=0.20.0  # Faster DataFrame operations
+pyarrow>=14.0.0  # Columnar data format
+numba>=0.58.0  # JIT compilation
+
+# Parallel processing
+joblib>=1.3.0
+ray[default]>=2.8.0  # Distributed computing
+dask[complete]>=2023.12.0  # Parallel computing
+
+# Message queue and task processing
+celery[redis]>=5.3.0
+flower>=2.0.0  # Celery monitoring
+kombu>=5.3.0
+
+# API optimization
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+python-multipart>=0.0.6
+prometheus-client>=0.19.0  # Metrics
+slowapi>=0.1.9  # Rate limiting
+
+# Monitoring and profiling
+py-spy>=0.3.14  # Performance profiling
+memory-profiler>=0.61.0
+line-profiler>=4.1.0
+scalene>=1.5.0  # CPU+GPU+memory profiler
+
+# Scientific computing (optimized)
+scipy>=1.11.0
+scikit-learn>=1.3.0
+scikit-learn-intelex>=2024.0.0  # Intel optimizations
+mkl>=2024.0.0  # Intel Math Kernel Library
+
+# Web and networking
+httpx>=0.25.0
+aiohttp>=3.9.0
+websockets>=12.0
+python-socketio>=5.10.0
+
+# Security and validation
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+python-dotenv>=1.0.0
+cryptography>=41.0.0
+
+# Utilities
+click>=8.1.0
+typer[all]>=0.9.0
+rich>=13.0.0
+tqdm>=4.65.0
+loguru>=0.7.0  # Better logging
+
+# Testing and quality (dev only)
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+pytest-xdist>=3.3.0  # Parallel testing
+pytest-benchmark>=4.0.0
+hypothesis>=6.82.0
+locust>=2.17.0  # Load testing
+
+# Code quality (dev only)
+black>=23.7.0
+isort>=5.12.0
+flake8>=6.0.0
+mypy>=1.5.0
+bandit>=1.7.5
+pre-commit>=3.4.0
+
+# Documentation (optional)
+mkdocs>=1.5.0
+mkdocs-material>=9.2.0
+mkdocstrings[python]>=0.23.0
+
+# ML/AI optimization (optional)
+onnx>=1.15.0  # Model optimization
+onnxruntime>=1.16.0  # Inference optimization
+tensorrt>=8.6.0  # NVIDIA optimization (GPU only)
+
+# GPU acceleration (optional)
+cupy>=12.0.0  # GPU arrays
+rapids>=23.12  # GPU dataframes
+
+# Compression and serialization
+msgpack>=1.0.0
+lz4>=4.3.0
+zstandard>=0.22.0
+blosc2>=2.4.0  # Fast compression
+
+# Production deployment
+supervisor>=4.2.0
+circus>=0.18.0  # Process manager
+honcho>=1.1.0  # Procfile runner

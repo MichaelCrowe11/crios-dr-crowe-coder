@@ -1,0 +1,172 @@
+# CriOS Discovery Engine Configuration
+# Crowe Discovery Framework - Universal Compound Discovery Platform
+
+# System Configuration
+system:
+  name: "CriOS Discovery Engine"
+  version: "0.1.0"
+  environment: "development"  # development, testing, production
+  log_level: "INFO"
+  debug: true
+  seed: 42  # Deterministic reproducibility seed
+
+# Database Configuration
+database:
+  engine: "sqlite"
+  path: "data/crios.db"
+  backup_enabled: true
+  backup_interval_hours: 24
+  connection_pool_size: 20
+
+# External API Configuration
+apis:
+  chembl:
+    base_url: "https://www.ebi.ac.uk/chembl/api/data"
+    timeout: 30
+    rate_limit_requests: 100
+    rate_limit_window: 3600
+  pubchem:
+    base_url: "https://pubchem.ncbi.nlm.nih.gov/rest/pug"
+    timeout: 30
+    rate_limit_requests: 200
+    rate_limit_window: 3600
+  rdkit:
+    max_heavy_atoms: 100
+    sanitize_molecules: true
+    remove_hs: true
+
+# Discovery Engine Configuration
+discovery:
+  # Natural Product Discovery
+  natural_products:
+    enabled: true
+    sources: ["fungi", "plants", "marine", "microbial"]
+    bioactivity_filters: ["neuroprotective", "antioxidant", "anti-inflammatory"]
+    scaffold_extraction: true
+    pharmacophore_analysis: true
+    
+  # Synthetic Chemistry Design  
+  synthetic_chemistry:
+    enabled: true
+    target_classes: ["GPCR", "kinase", "protease", "ion_channel"]
+    drug_like_filters: true
+    lipinski_compliant: true
+    synthetic_accessibility: true
+    
+  # Hybrid Approaches
+  hybrid_design:
+    enabled: true
+    natural_scaffold_optimization: true
+    synthetic_modification: true
+    bioisosterism: true
+
+# Molecular Processing
+molecular:
+  # Similarity Search
+  similarity:
+    default_threshold: 0.7
+    fingerprint_type: "morgan"  # morgan, rdkit, maccs
+    fingerprint_radius: 2
+    fingerprint_bits: 2048
+    batch_size: 1000
+    
+  # Clustering
+  clustering:
+    algorithm: "butina"  # butina, ward, kmeans
+    distance_threshold: 0.4
+    max_clusters: 100
+    min_cluster_size: 2
+    
+  # Descriptor Calculation
+  descriptors:
+    molecular_weight: true
+    logp: true
+    tpsa: true
+    hbd: true
+    hba: true
+    rotatable_bonds: true
+    aromatic_rings: true
+    
+  # ADMET Prediction
+  admet:
+    bbb_permeability: true
+    oral_bioavailability: true
+    cyp_inhibition: true
+    hepatotoxicity: true
+    cardiotoxicity: true
+
+# Scoring Configuration
+scoring:
+  # Crowe Scoring Methodology
+  crowe_score:
+    enabled: true
+    weights:
+      novelty: 0.25
+      drug_likeness: 0.20
+      synthetic_accessibility: 0.15
+      safety_profile: 0.20
+      ethical_alignment: 0.20
+    normalization: "min_max"
+    
+  # Multi-Objective Optimization
+  optimization:
+    objectives: ["efficacy", "safety", "druggability"]
+    pareto_ranking: true
+    diversity_penalty: 0.1
+
+# Performance Configuration
+performance:
+  # Parallel Processing
+  parallel:
+    enabled: true
+    max_workers: 8
+    chunk_size: 100
+    
+  # Caching
+  cache:
+    enabled: true
+    ttl_seconds: 3600
+    max_size_mb: 1024
+    
+  # Memory Management
+  memory:
+    max_compounds_in_memory: 10000
+    garbage_collection_threshold: 0.8
+
+# Web Interface Configuration
+web:
+  host: "0.0.0.0"
+  port: 8000
+  reload: true
+  cors_origins: ["http://localhost:3000", "https://app.crios.ai"]
+  max_upload_size_mb: 100
+  
+# CLI Configuration
+cli:
+  progress_bars: true
+  colored_output: true
+  verbose: false
+  output_format: "json"  # json, csv, sdf
+
+# Export Configuration
+export:
+  formats: ["sdf", "csv", "json", "xlsx"]
+  default_format: "sdf"
+  include_descriptors: true
+  include_scores: true
+
+# Quality Control
+quality:
+  # Validation Rules
+  validation:
+    max_molecular_weight: 1000
+    min_molecular_weight: 100
+    max_heavy_atoms: 50
+    min_heavy_atoms: 5
+    
+  # Filtering
+  filters:
+    pains: true
+    brenk: true
+    nih: true
+    zinc: true

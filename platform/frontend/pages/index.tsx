@@ -44,7 +44,8 @@ import {
   Stop as StopIcon,
   Refresh as RefreshIcon,
   CheckCircle as CheckIcon,
-  Warning as WarningIcon
+  Warning as WarningIcon,
+  Code as CodeIcon
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
@@ -53,6 +54,7 @@ import dynamic from 'next/dynamic';
 const MoleculeViewer = dynamic(() => import('../components/MoleculeViewer'), { ssr: false });
 const PipelineFlow = dynamic(() => import('../components/PipelineFlow'), { ssr: false });
 const AgentNetwork = dynamic(() => import('../components/AgentNetwork'), { ssr: false });
+const ImmersiveIDE = dynamic(() => import('../components/ImmersiveIDE'), { ssr: false });
 
 // Types
 interface Agent {
@@ -328,6 +330,7 @@ export default function Dashboard() {
             <Tab label="Discovery Pipeline" icon={<TimelineIcon />} />
             <Tab label="Agent Network" icon={<HubIcon />} />
             <Tab label="Molecule Analysis" icon={<BiotechIcon />} />
+            <Tab label="Immersive IDE" icon={<CodeIcon />} />
             <Tab label="Real-time Monitor" icon={<SpeedIcon />} />
           </Tabs>
 
@@ -432,6 +435,12 @@ export default function Dashboard() {
             )}
 
             {selectedTab === 3 && (
+              <Box sx={{ height: 'calc(100vh - 300px)' }}>
+                <ImmersiveIDE />
+              </Box>
+            )}
+
+            {selectedTab === 4 && (
               <Box>
                 <Typography variant="h5" sx={{ mb: 3 }}>
                   Real-time Activity Monitor

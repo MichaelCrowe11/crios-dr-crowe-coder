@@ -1,0 +1,306 @@
+# CriOS Discovery Engine - Performance Configuration
+# Optimized settings for high-throughput discovery
+
+# API Performance Settings
+api:
+  # Worker configuration
+  workers:
+    count: 4  # Number of worker processes (set to CPU cores)
+    type: "uvicorn.workers.UvicornWorker"
+    timeout: 120  # Worker timeout in seconds
+    graceful_timeout: 30  # Graceful shutdown timeout
+    max_requests: 1000  # Restart worker after N requests
+    max_requests_jitter: 50  # Randomize restart timing
+  
+  # Connection limits
+  connections:
+    max_concurrent: 1000  # Maximum concurrent connections
+    backlog: 2048  # Socket backlog size
+    keepalive: 75  # TCP keepalive in seconds
+  
+  # Request handling
+  requests:
+    max_body_size: 10485760  # 10MB max request size
+    timeout: 60  # Request timeout in seconds
+    rate_limit: 1000  # Requests per minute per IP
+    burst_limit: 50  # Burst allowance
+  
+  # Response optimization
+  response:
+    compression: true  # Enable gzip compression
+    compression_level: 6  # 1-9, higher = better compression
+    min_compression_size: 1000  # Minimum size to compress (bytes)
+    cache_control_max_age: 3600  # Cache control header (seconds)
+
+# Caching Configuration
+cache:
+  # Redis settings
+  redis:
+    enabled: true
+    host: "localhost"
+    port: 6379
+    db: 0
+    password: null
+    max_connections: 50
+    socket_keepalive: true
+    socket_timeout: 5
+    connection_pool:
+      max_idle: 10
+      min_idle: 5
+      max_active: 50
+  
+  # Cache policies
+  policies:
+    default_ttl: 3600  # 1 hour default TTL
+    max_entries: 100000  # Maximum cache entries
+    eviction_policy: "lru"  # least-recently-used
+    
+  # Cache zones
+  zones:
+    molecules:
+      ttl: 7200  # 2 hours for validated molecules
+      max_entries: 50000
+    scores:
+      ttl: 3600  # 1 hour for Crowe scores
+      max_entries: 20000
+    similarity:
+      ttl: 1800  # 30 minutes for similarity results
+      max_entries: 10000
+    
+  # Local memory cache (fallback)
+  memory:
+    enabled: true
+    max_size_mb: 512
+    ttl: 600  # 10 minutes
+
+# Database Performance
+database:
+  # Connection pooling
+  pool:
+    size: 20  # Connection pool size
+    max_overflow: 10  # Maximum overflow connections
+    timeout: 30  # Connection timeout
+    recycle: 3600  # Recycle connections after 1 hour
+    pre_ping: true  # Test connections before use
+  
+  # Query optimization
+  query:
+    timeout: 30  # Query timeout in seconds
+    batch_size: 1000  # Batch insert/update size
+    fetch_size: 5000  # Result fetch size
+    prepared_statements: true  # Use prepared statements
+  
+  # Async settings
+  async:
+    enabled: true
+    command_timeout: 30
+    pool_min_size: 10
+    pool_max_size: 30
+
+# Parallel Processing
+parallel:
+  # Batch processing
+  batch:
+    default_size: 100
+    max_size: 1000
+    parallel_threshold: 50  # Use parallel processing above this size
+  
+  # Thread pool
+  threads:
+    min: 4
+    max: 32
+    queue_size: 1000
+  
+  # Process pool
+  processes:
+    workers: 4  # Number of process workers
+    maxtasksperchild: 1000  # Restart after N tasks
+  
+  # Async configuration
+  async:
+    max_concurrent_tasks: 100
+    semaphore_value: 50  # Limit concurrent async operations
+
+# Molecular Processing
+molecular:
+  # Fingerprint generation
+  fingerprints:
+    cache_enabled: true
+    parallel_enabled: true
+    batch_size: 500
+    timeout: 10  # Timeout per molecule
+  
+  # Property calculation
+  properties:
+    cache_enabled: true
+    lazy_loading: true  # Calculate only when needed
+    parallel_threshold: 20  # Use parallel above this count
+  
+  # Validation
+  validation:
+    timeout: 5  # Timeout per molecule
+    strict_mode: false  # Faster but less strict
+    cache_results: true
+
+# Scoring Optimization
+scoring:
+  # Crowe scoring
+  crowe:
+    cache_enabled: true
+    parallel_enabled: true
+    batch_size: 100
+    timeout: 30
+    component_caching: true  # Cache individual components
+  
+  # Similarity search
+  similarity:
+    index_type: "annoy"  # Use approximate nearest neighbor
+    n_trees: 10  # Number of trees for index
+    search_k: -1  # Default search nodes
+    cache_enabled: true
+    batch_size: 1000
+  
+  # Ethics checking
+  ethics:
+    cache_enabled: true
+    parallel_enabled: false  # Keep sequential for consistency
+    timeout: 10
+
+# Memory Management
+memory:
+  # Limits
+  limits:
+    max_memory_mb: 4096  # Maximum memory usage
+    gc_threshold: 80  # Trigger GC at 80% usage
+    warning_threshold: 70  # Log warning at 70%
+  
+  # Garbage collection
+  gc:
+    enabled: true
+    interval: 300  # Run GC every 5 minutes
+    generations: [700, 10, 10]  # GC thresholds
+  
+  # Object pools
+  pools:
+    molecule_pool_size: 1000
+    fingerprint_pool_size: 5000
+
+# Monitoring and Metrics
+monitoring:
+  # Metrics collection
+  metrics:
+    enabled: true
+    interval: 60  # Collect metrics every minute
+    detailed: false  # Detailed metrics (impacts performance)
+  
+  # Performance profiling
+  profiling:
+    enabled: false  # Enable only for debugging
+    sample_rate: 0.001  # Sample 0.1% of requests
+    profile_dir: "profiles/"
+  
+  # Logging
+  logging:
+    level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+    async: true  # Async logging
+    buffer_size: 10000  # Log buffer size
+    rotation: "100 MB"  # Rotate logs at size
+    retention: "7 days"  # Keep logs for N days
+
+# Network Optimization
+network:
+  # HTTP/2 support
+  http2:
+    enabled: true
+    max_concurrent_streams: 100
+    initial_window_size: 65535
+  
+  # WebSocket
+  websocket:
+    enabled: true
+    ping_interval: 30
+    ping_timeout: 10
+    max_message_size: 1048576  # 1MB
+    max_connections: 500
+  
+  # DNS
+  dns:
+    cache_enabled: true
+    ttl: 300  # DNS cache TTL
+    timeout: 5  # DNS lookup timeout
+
+# Feature Flags
+features:
+  # Performance features
+  use_orjson: true  # Use faster JSON library
+  use_uvloop: true  # Use faster event loop
+  use_msgpack: false  # Use msgpack for internal comms
+  use_compression: true  # Enable response compression
+  
+  # Optimization features
+  intelligent_caching: true  # Smart cache invalidation
+  predictive_loading: true  # Preload likely requests
+  adaptive_batching: true  # Dynamic batch sizing
+  circuit_breaker: true  # Prevent cascade failures
+  
+  # Experimental
+  gpu_acceleration: false  # Use GPU if available
+  distributed_computing: false  # Use Ray for distribution
+  quantum_ready: false  # Placeholder for future
+
+# Load Balancing
+load_balancing:
+  # Strategy
+  strategy: "round_robin"  # round_robin, least_connections, ip_hash
+  health_check:
+    enabled: true
+    interval: 30  # Health check interval
+    timeout: 10
+    unhealthy_threshold: 3
+    healthy_threshold: 2
+  
+  # Upstream servers (if using multiple instances)
+  upstreams: []
+    # - host: "localhost"
+    #   port: 8001
+    #   weight: 1
+    # - host: "localhost"
+    #   port: 8002
+    #   weight: 1
+
+# Auto-scaling
+autoscaling:
+  enabled: false  # Enable for cloud deployments
+  metrics:
+    target_cpu: 70  # Target CPU percentage
+    target_memory: 80  # Target memory percentage
+    target_rps: 100  # Target requests per second
+  scaling:
+    min_instances: 2
+    max_instances: 10
+    scale_up_threshold: 3  # Consecutive periods above target
+    scale_down_threshold: 5  # Consecutive periods below target
+    cooldown: 300  # Cooldown period in seconds
+
+# Emergency Settings
+emergency:
+  # Circuit breaker
+  circuit_breaker:
+    enabled: true
+    failure_threshold: 5  # Failures to trip
+    recovery_timeout: 60  # Recovery time in seconds
+    half_open_requests: 3  # Test requests in half-open
+  
+  # Rate limiting
+  rate_limiting:
+    enabled: true
+    global_limit: 10000  # Global requests per minute
+    per_ip_limit: 1000  # Per IP requests per minute
+    burst_multiplier: 1.5  # Burst allowance multiplier
+  
+  # Overload protection
+  overload:
+    enabled: true
+    queue_limit: 1000  # Maximum queued requests
+    reject_threshold: 0.9  # Reject at 90% capacity
+    shed_strategy: "random"  # random, oldest, newest
