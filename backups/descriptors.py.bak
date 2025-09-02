@@ -1,0 +1,124 @@
+from typing import List, Dict, Any, Optional
+from rdkit import Chem
+from rdkit.Chem import Descriptors, Crippen, Lipinski, rdMolDescriptors
+import numpy as np
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class DescriptorCalculator:
+    
+    AVAILABLE_DESCRIPTORS = {
+        "MW": ("Molecular Weight", Descriptors.MolWt),
+        "LogP": ("Octanol-Water Partition Coefficient", Crippen.MolLogP),
+        "LogD": ("Distribution Coefficient", Crippen.MolLogP),
+        "TPSA": ("Topological Polar Surface Area", Descriptors.TPSA),
+        "HBA": ("Hydrogen Bond Acceptors", Lipinski.NumHAcceptors),
+        "HBD": ("Hydrogen Bond Donors", Lipinski.NumHDonors),
+        "RotatableBonds": ("Number of Rotatable Bonds", Lipinski.NumRotatableBonds),
+        "AromaticRings": ("Number of Aromatic Rings", Lipinski.NumAromaticRings),
+        "SaturatedRings": ("Number of Saturated Rings", Lipinski.NumSaturatedRings),
+        "AliphaticRings": ("Number of Aliphatic Rings", Lipinski.NumAliphaticRings),
+        "HeavyAtoms": ("Number of Heavy Atoms", Lipinski.HeavyAtomCount),
+        "QED": ("Quantitative Estimate of Druglikeness", Descriptors.qed),
+        "BertzCT": ("Bertz Complexity", Descriptors.BertzCT),
+        "MolMR": ("Molar Refractivity", Crippen.MolMR),
+        "FormalCharge": ("Formal Charge", lambda m: Chem.rdmolops.GetFormalCharge(m)),
+        "NumRadicals": ("Number of Radical Electrons", Descriptors.NumRadicalElectrons),
+        "NumHeteroatoms": ("Number of Heteroatoms", Lipinski.NumHeteroatoms),
+        "FractionCsp3": ("Fraction of sp3 Carbons", Lipinski.FractionCSP3),
+        "NumSaturatedHeterocycles": ("Number of Saturated Heterocycles", Lipinski.NumSaturatedHeterocycles),
+        "NumAromaticHeterocycles": ("Number of Aromatic Heterocycles", Lipinski.NumAromaticHeterocycles),
+        "NumSpiroAtoms": ("Number of Spiro Atoms", rdMolDescriptors.CalcNumSpiroAtoms),
+        "NumBridgeheadAtoms": ("Number of Bridgehead Atoms", rdMolDescriptors.CalcNumBridgeheadAtoms),
+        "SASA": ("Solvent Accessible Surface Area", lambda m: Descriptors.LabuteASA(m)),
+    }
+    
+    DESCRIPTOR_SETS = {
+        "lipinski": ["MW", "LogP", "HBA", "HBD"],
+        "qed": ["MW", "LogP", "HBA", "HBD", "TPSA", "RotatableBonds", "AromaticRings"],
+        "lead_like": ["MW", "LogP", "HBA", "HBD", "RotatableBonds", "AromaticRings"],
+        "fragment": ["MW", "LogP", "HBA", "HBD", "RotatableBonds"],
+        "comprehensive": list(AVAILABLE_DESCRIPTORS.keys()),
+        "basic": ["MW", "LogP", "TPSA", "HBA", "HBD"],
+    }
+    
+    def __init__(self):
+        self._cache = {}
+    
+    def calculate(self, mol: Chem.Mol, descriptors: Optional[List[str]] = None, 
+                 use_cache: bool = True) -> Dict[str, float]:
+        
+        if descriptors is None:
+            descriptors = self.DESCRIPTOR_SETS["basic"]
+        
+        mol_key = Chem.MolToSmiles(mol, canonical=True) if use_cache else None
+        
+        results = {}
+        for desc_name in descriptors:
+            if use_cache and mol_key and (mol_key, desc_name) in self._cache:
+                results[desc_name] = self._cache[(mol_key, desc_name)]
+            else:
+                value = self._calculate_single(mol, desc_name)
+                if use_cache and mol_key:
+                    self._cache[(mol_key, desc_name)] = value
+                results[desc_name] = value
+        
+        return results
+    
+    def _calculate_single(self, mol: Chem.Mol, descriptor_name: str) -> float:
+        if descriptor_name not in self.AVAILABLE_DESCRIPTORS:
+            if descriptor_name in ["_".join(d.split()) for d in self.AVAILABLE_DESCRIPTORS]:
+                descriptor_name = descriptor_name.replace("_", "")
+            else:
+                raise ValueError(f"Unknown descriptor: {descriptor_name}")
+        
+        try:
+            _, calc_func = self.AVAILABLE_DESCRIPTORS[descriptor_name]
+            return float(calc_func(mol))
+        except Exception as e:
+            logger.error(f"Error calculating {descriptor_name}: {e}")
+            return float('nan')
+    
+    def calculate_batch(self, mols: List[Chem.Mol], descriptors: Optional[List[str]] = None,
+                       parallel: bool = False, n_jobs: int = -1) -> List[Dict[str, float]]:
+        
+        if parallel:
+            from concurrent.futures import ProcessPoolExecutor, as_completed
+            import multiprocessing
+            
+            if n_jobs == -1:
+                n_jobs = multiprocessing.cpu_count()
+            
+            with ProcessPoolExecutor(max_workers=n_jobs) as executor:
+                futures = {executor.submit(self.calculate, mol, descriptors, False): i 
+                          for i, mol in enumerate(mols)}
+                results = [None] * len(mols)
+                
+                for future in as_completed(futures):
+                    idx = futures[future]
+                    results[idx] = future.result()
+            
+            return results
+        else:
+            return [self.calculate(mol, descriptors) for mol in mols]
+    
+    def get_descriptor_info(self, descriptor_name: str) -> Dict[str, Any]:
+        if descriptor_name not in self.AVAILABLE_DESCRIPTORS:
+            raise ValueError(f"Unknown descriptor: {descriptor_name}")
+        
+        description, _ = self.AVAILABLE_DESCRIPTORS[descriptor_name]
+        return {
+            "name": descriptor_name,
+            "description": description,
+            "available": True
+        }
+    
+    @classmethod
+    def list_available_descriptors(cls) -> List[str]:
+        return list(cls.AVAILABLE_DESCRIPTORS.keys())
+    
+    @classmethod
+    def list_descriptor_sets(cls) -> Dict[str, List[str]]:
+        return cls.DESCRIPTOR_SETS.copy()
