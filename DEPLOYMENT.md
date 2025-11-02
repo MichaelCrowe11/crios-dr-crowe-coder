@@ -445,6 +445,226 @@ flyctl scale memory 2048 -a crios-backend
 3. **Connection issues**: Verify secrets with `flyctl secrets list`
 4. **Rollback**: Use `flyctl releases rollback <version>`
 
+## Vercel Deployment (Frontend Only)
+
+Vercel is ideal for deploying Next.js frontends. The backend should be deployed separately (Fly.io, Railway, etc.).
+
+### Prerequisites
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Login to Vercel
+vercel login
+```
+
+### Option 1: Deploy via Vercel CLI
+
+#### Deploy Frontend (platform/frontend)
+```bash
+cd platform/frontend
+
+# Deploy to preview
+vercel
+
+# Deploy to production
+vercel --prod
+
+# Set environment variables
+vercel env add NEXT_PUBLIC_API_URL production
+# Enter: https://crios-backend.fly.dev
+
+vercel env add NEXT_PUBLIC_WS_URL production
+# Enter: wss://crios-backend.fly.dev
+```
+
+#### Deploy Algorithm Studio UI (ui)
+```bash
+cd ui
+
+# Deploy to preview
+vercel
+
+# Deploy to production
+vercel --prod
+
+# Set environment variables
+vercel env add NEXT_PUBLIC_API_URL production
+# Enter: https://crios-backend.fly.dev
+```
+
+### Option 2: Deploy via GitHub Integration (Recommended)
+
+1. **Connect Repository to Vercel**:
+   - Go to https://vercel.com/new
+   - Import your GitHub repository
+   - Vercel will auto-detect Next.js
+
+2. **Configure Frontend Deployment**:
+   - **Project Name**: `crios-frontend`
+   - **Root Directory**: `platform/frontend`
+   - **Framework Preset**: Next.js
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `.next`
+
+3. **Set Environment Variables**:
+   ```
+   NEXT_PUBLIC_API_URL = https://crios-backend.fly.dev
+   NEXT_PUBLIC_WS_URL = wss://crios-backend.fly.dev
+   NODE_ENV = production
+   ```
+
+4. **Configure UI Deployment** (separate project):
+   - **Project Name**: `crios-ui`
+   - **Root Directory**: `ui`
+   - **Framework Preset**: Next.js
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `.next`
+
+5. **Set Environment Variables**:
+   ```
+   NEXT_PUBLIC_API_URL = https://crios-backend.fly.dev
+   NODE_ENV = production
+   ```
+
+### Vercel Configuration Files
+- Frontend: `platform/frontend/vercel.json`
+- UI: `ui/vercel.json`
+- Ignore files: `.vercelignore` in each directory
+
+### Custom Domains on Vercel
+
+```bash
+# Add custom domain (via CLI)
+vercel domains add yourdomain.com
+
+# Or via Vercel Dashboard:
+# Project Settings → Domains → Add Domain
+```
+
+### Automatic Deployments
+
+Once connected to GitHub:
+- **Push to `main`** → Production deployment
+- **Pull requests** → Preview deployments
+- **Every commit** → Automatic builds
+
+### Environment Variables Management
+
+```bash
+# List environment variables
+vercel env ls
+
+# Add environment variable
+vercel env add NEXT_PUBLIC_API_URL
+
+# Remove environment variable
+vercel env rm NEXT_PUBLIC_API_URL
+
+# Pull environment variables locally
+vercel env pull
+```
+
+### Monitoring on Vercel
+
+- **Dashboard**: https://vercel.com/dashboard
+- **Deployments**: View build logs and deployment history
+- **Analytics**: Real-time traffic and performance metrics
+- **Logs**: Runtime logs for serverless functions
+
+### URLs After Vercel Deployment
+- **Frontend**: https://crios-frontend.vercel.app
+- **UI**: https://crios-ui.vercel.app
+- **Custom Domain**: https://yourdomain.com (if configured)
+
+### Hybrid Deployment Architecture (Recommended)
+
+```
+┌─────────────────────────────────────────┐
+│           VERCEL (Frontend)             │
+│  ┌─────────────────────────────────┐   │
+│  │  crios-frontend.vercel.app      │   │
+│  │  (Next.js + Monaco IDE)         │   │
+│  └──────────────┬──────────────────┘   │
+│                 │                       │
+│  ┌──────────────▼──────────────────┐   │
+│  │  crios-ui.vercel.app            │   │
+│  │  (Algorithm Studio)             │   │
+│  └──────────────┬──────────────────┘   │
+└─────────────────┼───────────────────────┘
+                  │
+                  │ HTTPS/WSS
+                  │
+┌─────────────────▼───────────────────────┐
+│         FLY.IO (Backend)                │
+│  ┌─────────────────────────────────┐   │
+│  │  crios-backend.fly.dev          │   │
+│  │  (FastAPI + RDKit + Python)     │   │
+│  └──────────────┬──────────────────┘   │
+│                 │                       │
+│  ┌──────────────┼──────────────────┐   │
+│  │  PostgreSQL  │  Redis           │   │
+│  └──────────────┴──────────────────┘   │
+└─────────────────────────────────────────┘
+```
+
+### Troubleshooting Vercel
+
+1. **Build Fails**:
+   ```bash
+   # Check build logs in Vercel Dashboard
+   # Or locally:
+   vercel build
+   ```
+
+2. **Environment Variables Not Working**:
+   - Ensure variables start with `NEXT_PUBLIC_` for client-side access
+   - Redeploy after adding variables
+   - Check variable scope (Production/Preview/Development)
+
+3. **API Connection Issues**:
+   - Verify `NEXT_PUBLIC_API_URL` is set correctly
+   - Check CORS settings on backend
+   - Ensure backend is deployed and accessible
+
+4. **Monaco Editor Issues**:
+   - Monaco should work out of the box with Next.js
+   - If issues occur, check webpack config in `next.config.js`
+
+5. **Deployment Timeouts**:
+   - Vercel has a 45-second build timeout on Hobby plan
+   - Optimize `package.json` dependencies
+   - Consider upgrading to Pro plan
+
+### Vercel Limits
+
+**Hobby (Free) Plan**:
+- ✅ 100 GB bandwidth/month
+- ✅ 100 deployments/day
+- ✅ Unlimited preview deployments
+- ❌ 45-second max build time
+- ❌ 10-second serverless function timeout
+
+**Pro Plan** ($20/month):
+- ✅ 1 TB bandwidth/month
+- ✅ 6000 build minutes/month
+- ✅ 300-second max build time
+- ✅ 60-second serverless function timeout
+
+### Cost Comparison
+
+| Platform | Frontend | Backend | Database | Total/Month |
+|----------|----------|---------|----------|-------------|
+| **Vercel + Fly.io** | Free-$20 | Free-$30 | Free-$10 | **$0-60** |
+| **All Fly.io** | $5-10 | $5-30 | Free-$10 | **$10-50** |
+| **All Vercel** | Free-$20 | ❌ N/A | ❌ N/A | **Not Recommended** |
+
+### Recommended Setup
+- ✅ **Frontend**: Vercel (optimized for Next.js)
+- ✅ **Backend**: Fly.io (Python/RDKit support)
+- ✅ **Database**: Fly.io PostgreSQL
+- ✅ **Cache**: Fly.io Redis
+
 ## Support
 
 - **Documentation**: See README.md files in each component
