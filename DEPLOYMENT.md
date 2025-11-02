@@ -356,12 +356,102 @@ redis-cli BGSAVE
 tar -czf config_backup_$(date +%Y%m%d).tar.gz configs/ .env ui/.env.local
 ```
 
+## Fly.io Cloud Deployment
+
+### Prerequisites
+```bash
+# Install Fly.io CLI
+curl -L https://fly.io/install.sh | sh
+
+# Login to Fly.io
+flyctl auth login
+```
+
+### 1. Create PostgreSQL Database
+```bash
+flyctl postgres create --name crios-db --region iad --vm-size shared-cpu-1x --volume-size 10
+```
+
+### 2. Create Redis Instance
+```bash
+flyctl redis create --name crios-redis --region iad --plan free
+```
+
+### 3. Deploy Backend
+```bash
+cd platform/backend
+
+# Create the app (first time only)
+flyctl apps create crios-backend --org personal
+
+# Set secrets
+flyctl secrets set \
+  DATABASE_URL="postgres://username:password@hostname:5432/database" \
+  REDIS_URL="redis://default:password@hostname:6379" \
+  ANTHROPIC_API_KEY="your-api-key"
+
+# Deploy
+flyctl deploy
+
+# Check status
+flyctl status
+```
+
+### 4. Deploy Frontend
+```bash
+cd platform/frontend
+
+# Create the app (first time only)
+flyctl apps create crios-frontend --org personal
+
+# Set environment variables
+flyctl secrets set \
+  NEXT_PUBLIC_API_URL="https://crios-backend.fly.dev" \
+  NEXT_PUBLIC_WS_URL="wss://crios-backend.fly.dev"
+
+# Deploy
+flyctl deploy
+```
+
+### Fly.io Configuration Files
+- Backend: `platform/backend/fly.toml`
+- Frontend: `platform/frontend/fly.toml`
+
+### Monitoring on Fly.io
+```bash
+# View logs
+flyctl logs -a crios-backend
+flyctl logs -a crios-frontend
+
+# Check status
+flyctl status -a crios-backend
+
+# SSH into machine
+flyctl ssh console -a crios-backend
+
+# Scale resources
+flyctl scale count 2 -a crios-backend
+flyctl scale memory 2048 -a crios-backend
+```
+
+### URLs After Fly.io Deployment
+- **Backend API**: https://crios-backend.fly.dev
+- **Frontend**: https://crios-frontend.fly.dev
+- **API Health**: https://crios-backend.fly.dev/health
+
+### Troubleshooting Fly.io
+1. **Deployment fails**: Check logs with `flyctl logs`
+2. **Out of memory**: Scale up with `flyctl scale memory 2048`
+3. **Connection issues**: Verify secrets with `flyctl secrets list`
+4. **Rollback**: Use `flyctl releases rollback <version>`
+
 ## Support
 
 - **Documentation**: See README.md files in each component
 - **API Docs**: http://localhost:8000/docs
 - **Issues**: Create GitHub issues for bugs/features
 - **Development**: Use `make help` for available commands
+- **Fly.io Docs**: https://fly.io/docs/
 
 ---
 
