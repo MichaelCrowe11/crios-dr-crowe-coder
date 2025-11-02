@@ -31,7 +31,6 @@
     "three": "^0.160.0",
     "@react-three/fiber": "^8.15.13",
     "@react-three/drei": "^9.92.7",
-    "react-molecular-viewer": "^1.0.0",
     "react-hot-toast": "^2.4.1",
     "zustand": "^4.4.7",
     "uuid": "^9.0.1",
