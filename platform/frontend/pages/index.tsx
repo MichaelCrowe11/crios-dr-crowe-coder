@@ -28,7 +28,9 @@ import {
   useTheme,
   ThemeProvider,
   createTheme,
-  CssBaseline
+  CssBaseline,
+  CircularProgress,
+  ListItemIcon
 } from '@mui/material';
 import {
   Science as ScienceIcon,
@@ -544,7 +546,3 @@ export default function Dashboard() {
     </ThemeProvider>
   );
 }
-
-// Import fixes
-import { CircularProgress } from '@mui/material';
-import { ListItemIcon } from '@mui/material';
