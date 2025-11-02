@@ -1,0 +1,52 @@
+# Railway Configuration for CriOS Dr. Crowe Coder Platform
+# Multi-service monorepo deployment
+
+# Backend API Service
+[[services]]
+name = "crios-backend"
+source = "platform/backend"
+dockerfile = "platform/backend/Dockerfile"
+
+[services.healthcheck]
+path = "/health"
+interval = 30
+timeout = 10
+
+[services.deploy]
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+
+# Frontend Service
+[[services]]
+name = "crios-frontend"
+source = "platform/frontend"
+dockerfile = "platform/frontend/Dockerfile"
+
+[services.deploy]
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+
+# Celery Worker Service
+[[services]]
+name = "crios-worker"
+source = "platform/backend"
+dockerfile = "platform/backend/Dockerfile.worker"
+
+[services.deploy]
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+
+# Core API Service (CriOS Discovery Engine)
+[[services]]
+name = "crios-core-api"
+source = "."
+dockerfile = "Dockerfile.api"
+
+[services.healthcheck]
+path = "/health"
+interval = 30
+timeout = 10
+
+[services.deploy]
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3

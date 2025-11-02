@@ -2,8 +2,14 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  // Enable standalone output for Docker deployment
+  output: 'standalone',
+  // Optimize for production
+  poweredByHeader: false,
+  compress: true,
   images: {
     domains: ['localhost', 'crios.ai'],
+    unoptimized: process.env.NODE_ENV === 'production',
   },
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
