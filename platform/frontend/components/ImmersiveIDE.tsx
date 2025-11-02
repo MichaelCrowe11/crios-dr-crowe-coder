@@ -1201,7 +1201,7 @@ class SyntheticDrugDesigner:
                 if 'c1ccccc1' in candidate_smiles:
                     substituent = random.choice(['F', 'Cl', 'C', 'O', 'N'])
                     candidate_smiles = candidate_smiles.replace(
-                        'c1ccccc1', f'c1ccc(${substituent})cc1', 1
+                        'c1ccccc1', f'c1ccc({substituent})cc1', 1
                     )
         
         # Clean up and validate SMILES
@@ -1920,24 +1920,34 @@ export default function ImmersiveIDE() {
     // Configure Monaco for biological computing
     monaco.languages.registerCompletionItemProvider('python', {
       provideCompletionItems: (model, position) => {
+        const word = model.getWordUntilPosition(position);
+        const range = {
+          startLineNumber: position.lineNumber,
+          endLineNumber: position.lineNumber,
+          startColumn: word.startColumn,
+          endColumn: word.endColumn
+        };
         const suggestions = [
           {
             label: 'biological_similarity',
             kind: monaco.languages.CompletionItemKind.Function,
             insertText: 'biological_similarity(mol1, mol2, method="tanimoto")',
-            detail: 'Dr. Crowe biological similarity function'
+            detail: 'Dr. Crowe biological similarity function',
+            range: range
           },
           {
             label: 'adaptive_clustering',
             kind: monaco.languages.CompletionItemKind.Function, 
             insertText: 'adaptive_clustering(compounds, n_clusters=5)',
-            detail: 'Biological-inspired clustering algorithm'
+            detail: 'Biological-inspired clustering algorithm',
+            range: range
           },
           {
             label: 'generate_compounds',
             kind: monaco.languages.CompletionItemKind.Function,
             insertText: 'generate_compounds(scaffold, n_compounds=10)',
-            detail: 'AI compound generator with biological patterns'
+            detail: 'AI compound generator with biological patterns',
+            range: range
           }
         ];
         return { suggestions };
