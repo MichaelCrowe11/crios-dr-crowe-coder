@@ -1,0 +1,107 @@
+{
+  "services": [
+    {
+      "name": "postgres",
+      "type": "database",
+      "plugin": "postgresql",
+      "config": {
+        "version": "16",
+        "volumeSize": "10GB"
+      },
+      "variables": {
+        "POSTGRES_USER": "crios",
+        "POSTGRES_PASSWORD": "GENERATE_SECURE_PASSWORD",
+        "POSTGRES_DB": "crios_discovery"
+      }
+    },
+    {
+      "name": "redis",
+      "type": "cache",
+      "plugin": "redis",
+      "config": {
+        "version": "7",
+        "volumeSize": "5GB"
+      },
+      "variables": {
+        "REDIS_PASSWORD": "GENERATE_SECURE_PASSWORD"
+      }
+    },
+    {
+      "name": "backend",
+      "type": "service",
+      "dockerfile": "platform/backend/Dockerfile",
+      "rootDirectory": "/",
+      "healthcheck": {
+        "path": "/health",
+        "timeout": 30
+      },
+      "variables": {
+        "DATABASE_URL": "${{Postgres.DATABASE_URL}}",
+        "REDIS_URL": "${{Redis.REDIS_URL}}",
+        "ANTHROPIC_API_KEY": "YOUR_ANTHROPIC_API_KEY",
+        "ENV": "production",
+        "PYTHONPATH": "/app",
+        "PORT": "${{PORT}}",
+        "ALLOWED_HOSTS": "*",
+        "CORS_ORIGINS": "https://${{Frontend.RAILWAY_PUBLIC_DOMAIN}}"
+      },
+      "domains": [
+        {
+          "type": "public",
+          "generateDomain": true
+        }
+      ]
+    },
+    {
+      "name": "frontend",
+      "type": "service",
+      "dockerfile": "platform/frontend/Dockerfile",
+      "rootDirectory": "/platform/frontend",
+      "healthcheck": {
+        "path": "/",
+        "timeout": 30
+      },
+      "variables": {
+        "NEXT_PUBLIC_API_URL": "https://${{Backend.RAILWAY_PUBLIC_DOMAIN}}",
+        "NEXT_PUBLIC_WS_URL": "wss://${{Backend.RAILWAY_PUBLIC_DOMAIN}}",
+        "NODE_ENV": "production",
+        "PORT": "${{PORT}}"
+      },
+      "domains": [
+        {
+          "type": "public",
+          "generateDomain": true
+        }
+      ]
+    },
+    {
+      "name": "celery-worker",
+      "type": "service",
+      "dockerfile": "platform/backend/Dockerfile",
+      "rootDirectory": "/",
+      "customCommand": "celery -A app.celery worker --loglevel=info --concurrency=2",
+      "variables": {
+        "DATABASE_URL": "${{Postgres.DATABASE_URL}}",
+        "REDIS_URL": "${{Redis.REDIS_URL}}",
+        "ANTHROPIC_API_KEY": "YOUR_ANTHROPIC_API_KEY",
+        "CELERY_BROKER_URL": "${{Redis.REDIS_URL}}",
+        "CELERY_RESULT_BACKEND": "${{Redis.REDIS_URL}}",
+        "C_FORCE_ROOT": "true",
+        "PYTHONPATH": "/app"
+      },
+      "replicas": 1
+    }
+  ],
+  "deployment_order": [
+    "postgres",
+    "redis",
+    "backend",
+    "celery-worker",
+    "frontend"
+  ],
+  "notes": {
+    "internal_networking": "Services can communicate using Railway's private networking via RAILWAY_PRIVATE_DOMAIN",
+    "cost_estimate": "$20-50/month depending on usage and resources",
+    "scaling": "Each service can be scaled independently via Railway dashboard"
+  }
+}

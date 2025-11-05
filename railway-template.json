@@ -1,0 +1,127 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "name": "CriOS Discovery Engine",
+  "description": "AI-Driven Drug Discovery Platform with 194 PhD Agents",
+  "icon": "https://raw.githubusercontent.com/michaelcrowe11/crios/main/docs/logo.png",
+  "categories": ["ai", "biotech", "drug-discovery"],
+  "services": {
+    "postgres": {
+      "name": "PostgreSQL",
+      "type": "database",
+      "icon": "postgres",
+      "plan": "plugin",
+      "plugin": {
+        "id": "postgresql",
+        "version": "16"
+      }
+    },
+    "redis": {
+      "name": "Redis",
+      "type": "cache",
+      "icon": "redis",
+      "plan": "plugin",
+      "plugin": {
+        "id": "redis",
+        "version": "7"
+      }
+    },
+    "backend": {
+      "name": "Backend API",
+      "icon": "python",
+      "build": {
+        "dockerfile": "platform/backend/Dockerfile",
+        "buildContext": "."
+      },
+      "deploy": {
+        "healthcheck": {
+          "path": "/health",
+          "timeout": 30
+        },
+        "restartPolicy": {
+          "type": "on-failure",
+          "maxRetries": 10
+        }
+      },
+      "env": {
+        "DATABASE_URL": "${{Postgres.DATABASE_URL}}",
+        "REDIS_URL": "${{Redis.REDIS_URL}}",
+        "ANTHROPIC_API_KEY": {
+          "description": "Anthropic API key for Claude integration",
+          "required": true
+        },
+        "ENV": "production",
+        "PYTHONPATH": "/app",
+        "ALLOWED_HOSTS": "*"
+      },
+      "domains": [
+        {
+          "type": "public"
+        }
+      ],
+      "dependsOn": ["postgres", "redis"]
+    },
+    "celery-worker": {
+      "name": "Celery Worker",
+      "icon": "celery",
+      "build": {
+        "dockerfile": "platform/backend/Dockerfile",
+        "buildContext": "."
+      },
+      "deploy": {
+        "command": "celery -A app.celery worker --loglevel=info --concurrency=2",
+        "restartPolicy": {
+          "type": "on-failure",
+          "maxRetries": 10
+        }
+      },
+      "env": {
+        "DATABASE_URL": "${{Postgres.DATABASE_URL}}",
+        "REDIS_URL": "${{Redis.REDIS_URL}}",
+        "ANTHROPIC_API_KEY": {
+          "description": "Anthropic API key for Claude integration",
+          "required": true
+        },
+        "CELERY_BROKER_URL": "${{Redis.REDIS_URL}}",
+        "CELERY_RESULT_BACKEND": "${{Redis.REDIS_URL}}",
+        "C_FORCE_ROOT": "true",
+        "PYTHONPATH": "/app"
+      },
+      "dependsOn": ["postgres", "redis", "backend"]
+    },
+    "frontend": {
+      "name": "Frontend UI",
+      "icon": "nextjs",
+      "build": {
+        "dockerfile": "Dockerfile",
+        "buildContext": "platform/frontend",
+        "buildArgs": {
+          "NEXT_PUBLIC_API_URL": "https://${{Backend.RAILWAY_PUBLIC_DOMAIN}}",
+          "NEXT_PUBLIC_WS_URL": "wss://${{Backend.RAILWAY_PUBLIC_DOMAIN}}"
+        }
+      },
+      "deploy": {
+        "healthcheck": {
+          "path": "/",
+          "timeout": 30
+        }
+      },
+      "env": {
+        "NEXT_PUBLIC_API_URL": "https://${{Backend.RAILWAY_PUBLIC_DOMAIN}}",
+        "NEXT_PUBLIC_WS_URL": "wss://${{Backend.RAILWAY_PUBLIC_DOMAIN}}",
+        "NODE_ENV": "production"
+      },
+      "domains": [
+        {
+          "type": "public"
+        }
+      ],
+      "dependsOn": ["backend"]
+    }
+  },
+  "metadata": {
+    "repository": "https://github.com/michaelcrowe11/crios-dr-crowe-coder",
+    "license": "MIT",
+    "author": "Michael B. Crowe",
+    "website": "https://crios.ai"
+  }
+}

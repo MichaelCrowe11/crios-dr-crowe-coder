@@ -1,0 +1,104 @@
+version: '3.9'
+
+# Railway-optimized Docker Compose configuration
+# This file is designed for Railway deployment with internal networking
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${{POSTGRES_USER}}
+      POSTGRES_PASSWORD: ${{POSTGRES_PASSWORD}}
+      POSTGRES_DB: ${{POSTGRES_DB}}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --requirepass ${{REDIS_PASSWORD}}
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: .
+      dockerfile: platform/backend/Dockerfile
+    environment:
+      DATABASE_URL: ${{DATABASE_URL}}
+      REDIS_URL: ${{REDIS_URL}}
+      ANTHROPIC_API_KEY: ${{ANTHROPIC_API_KEY}}
+      PYTHONPATH: /app
+      ENV: production
+      PORT: ${{PORT}}
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:$${PORT:-8000}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    command: uvicorn app:app --host 0.0.0.0 --port $${PORT:-8000}
+
+  # Next.js Frontend
+  frontend:
+    build:
+      context: ./platform/frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${{NEXT_PUBLIC_API_URL}}
+        NEXT_PUBLIC_WS_URL: ${{NEXT_PUBLIC_WS_URL}}
+    environment:
+      NEXT_PUBLIC_API_URL: ${{NEXT_PUBLIC_API_URL}}
+      NEXT_PUBLIC_WS_URL: ${{NEXT_PUBLIC_WS_URL}}
+      PORT: ${{PORT}}
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:$${PORT:-3000}/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Celery Worker for Background Tasks
+  celery-worker:
+    build:
+      context: .
+      dockerfile: platform/backend/Dockerfile
+    environment:
+      DATABASE_URL: ${{DATABASE_URL}}
+      REDIS_URL: ${{REDIS_URL}}
+      ANTHROPIC_API_KEY: ${{ANTHROPIC_API_KEY}}
+      PYTHONPATH: /app
+      C_FORCE_ROOT: "true"
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A app.celery worker --loglevel=info --concurrency=2
+
+volumes:
+  postgres_data:
+  redis_data:
