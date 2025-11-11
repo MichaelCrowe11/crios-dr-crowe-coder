@@ -1,0 +1,57 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "name": "crios-discovery-engine",
+  "buildCommand": "cd platform/frontend && npm run build",
+  "devCommand": "cd platform/frontend && npm run dev",
+  "installCommand": "cd platform/frontend && npm install",
+  "framework": "nextjs",
+  "outputDirectory": "platform/frontend/.next",
+  "regions": ["iad1"],
+  "build": {
+    "env": {
+      "NEXT_PUBLIC_API_URL": "@api-url",
+      "NEXT_PUBLIC_WS_URL": "@ws-url"
+    }
+  },
+  "env": {
+    "NEXT_PUBLIC_API_URL": "https://crios-discovery-engine.vercel.app",
+    "NEXT_PUBLIC_WS_URL": "wss://crios-discovery-engine.vercel.app",
+    "POSTGRES_URL": "@postgres-url",
+    "POSTGRES_PRISMA_URL": "@postgres-prisma-url",
+    "POSTGRES_URL_NON_POOLING": "@postgres-url-non-pooling",
+    "REDIS_URL": "@redis-url",
+    "ANTHROPIC_API_KEY": "@anthropic-api-key",
+    "NODE_ENV": "production"
+  },
+  "functions": {
+    "platform/frontend/pages/api/**/*.ts": {
+      "maxDuration": 60,
+      "memory": 3008
+    },
+    "api/**/*.py": {
+      "runtime": "python3.9",
+      "maxDuration": 60,
+      "memory": 3008
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/:path*",
+      "headers": [
+        { "key": "Access-Control-Allow-Credentials", "value": "true" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
+        { "key": "Access-Control-Allow-Headers", "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version" }
+      ]
+    }
+  ],
+  "cleanUrls": true,
+  "trailingSlash": false
+}

@@ -1,0 +1,11 @@
+# Python dependencies for Vercel serverless functions
+# Note: RDKit is large and may cause cold start issues
+# Consider using external API for production or optimize with custom build
+
+# For molecule validation and chemistry operations
+# rdkit==2023.9.4  # Commented out - too large for Vercel serverless
+# Alternative: Use lightweight chemistry library or external API
+
+# Lightweight alternatives
+pydantic==2.5.3
+fastapi==0.109.0  # For request/response models only
